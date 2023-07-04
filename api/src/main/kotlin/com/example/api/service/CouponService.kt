@@ -1,13 +1,14 @@
 package com.example.api.service
 
 import com.example.api.domain.Coupon
+import com.example.api.repository.CouponCountRepository
 import com.example.api.repository.CouponRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
 @Service
 class CouponService(
-    private val couponRepository: CouponRepository
+    private val couponRepository: CouponRepository,
+    private val couponCountRepository: CouponCountRepository
 ) {
 
     /*
@@ -25,7 +26,7 @@ class CouponService(
      */
 
     fun issue(userId : Int) {
-        val count = couponRepository.count()
+        val count = couponCountRepository.increment()
         if(count > 100) {
             return
         }
