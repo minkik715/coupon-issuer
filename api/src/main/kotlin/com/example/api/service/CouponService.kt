@@ -1,6 +1,7 @@
 package com.example.api.service
 
 import com.example.api.domain.Coupon
+import com.example.api.producer.CouponCreateProducer
 import com.example.api.repository.CouponCountRepository
 import com.example.api.repository.CouponRepository
 import org.springframework.stereotype.Service
@@ -8,7 +9,8 @@ import org.springframework.stereotype.Service
 @Service
 class CouponService(
     private val couponRepository: CouponRepository,
-    private val couponCountRepository: CouponCountRepository
+    private val couponCountRepository: CouponCountRepository,
+    private val couponCreateProducer: CouponCreateProducer
 ) {
 
     /*
@@ -25,12 +27,12 @@ class CouponService(
     하지만 현재 코드는 rdb의 insert를 할경우 많은 부하를 일으키거나 db를 사용하는 다른 api에 effect를 줄 수 있기 때문에 문제 해결을 위해 무언가가 필요하다.
      */
 
-    fun issue(userId : Int) {
+    fun issue(userId : Long) {
         val count = couponCountRepository.increment()
         if(count > 100) {
             return
         }
-        couponRepository.save(Coupon(userId =userId))
+        couponCreateProducer.create(userId)
         return
     }
 }

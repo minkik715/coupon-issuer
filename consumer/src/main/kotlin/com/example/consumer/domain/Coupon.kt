@@ -1,4 +1,4 @@
-package com.example.api.domain
+package com.example.consumer.domain
 
 import java.util.*
 import javax.persistence.Entity
@@ -9,9 +9,13 @@ class Coupon(
     @Id
     val id: String = UUID.randomUUID().toString(),
 
-    var userId: Long,
+    var userId: Long? = null,
 
     ) {
+    constructor(userId: Long) : this(
+        UUID.randomUUID().toString(),
+        userId
+    )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -28,3 +32,4 @@ class Coupon(
         return id.hashCode()
     }
 }
+
