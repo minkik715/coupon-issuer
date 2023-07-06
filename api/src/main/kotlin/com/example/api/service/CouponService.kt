@@ -1,18 +1,25 @@
 package com.example.api.service
 
 import com.example.api.domain.Coupon
+import com.example.api.domain.FailedEvent
 import com.example.api.producer.CouponCreateProducer
 import com.example.api.repository.CouponCountRepository
 import com.example.api.repository.CouponRepository
+import com.example.api.repository.FailedEventRepository
+import com.example.api.repository.IssuedUserRepository
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class CouponService(
-    private val couponRepository: CouponRepository,
+    private val issuedUserRepository: IssuedUserRepository,
     private val couponCountRepository: CouponCountRepository,
-    private val couponCreateProducer: CouponCreateProducer
+    private val couponCreateProducer: CouponCreateProducer,
+    private val failedEventRepository: FailedEventRepository,
 ) {
 
+    private val logger: Logger = LoggerFactory.getLogger(CouponService::class.java)
     /*
     스프링은 자체적으로 스레드 풀을 가지고 있어 request가 들어오면
     스레드를 스레드 풀에서 꺼내서 사용하게 한다.
@@ -27,12 +34,22 @@ class CouponService(
     하지만 현재 코드는 rdb의 insert를 할경우 많은 부하를 일으키거나 db를 사용하는 다른 api에 effect를 줄 수 있기 때문에 문제 해결을 위해 무언가가 필요하다.
      */
 
-    fun issue(userId : Long) {
-        val count = couponCountRepository.increment()
-        if(count > 100) {
-            return
+    fun issue(userId: Long) {
+        kotlin.runCatching {
+            issuedUserRepository.issueCoupon(userId)?.let {
+                if (it != 1L) {
+                    return
+                }
+            } ?: return
+
+            val count = couponCountRepository.increment()
+            if (count > 100) {
+                return
+            }
+            couponCreateProducer.create(userId)
+        }.onFailure {
+            logger.warn("failed to issue coupon to ${userId}")
+            failedEventRepository.save(FailedEvent(userId))
         }
-        couponCreateProducer.create(userId)
-        return
     }
 }
